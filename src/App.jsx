@@ -12,8 +12,10 @@ import {
   BarChart3, 
   X, 
   Check, 
-  RotateCcw 
+  RotateCcw,
+  ArrowLeft 
 } from 'lucide-react';
+import EasyThemeTransition from './components/EasyThemeTransition';
 
 export default function App() {
   // Start with All-India overview so full map is visible, and clicking any state isolates and zooms that state
@@ -21,13 +23,29 @@ export default function App() {
   const [activeClaim, setActiveClaim] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(0);
 
-  // Theme Management
+  // Theme Management with EasyTransitions Animation
   const [currentTheme, setCurrentTheme] = useState(DEFAULT_THEME);
   const [isThemeMenuOpen, setIsThemeMenuOpen] = useState(false);
+  const [isThemeTransitioning, setIsThemeTransitioning] = useState(false);
+  const [targetTransitionTheme, setTargetTransitionTheme] = useState(null);
+  const [transitionType, setTransitionType] = useState('split_diamond');
 
   // Modals & Drawers
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  // Available easy transition types from the CodePen
+  const transitionTypes = [
+    'split_diamond',
+    'split_diagonal',
+    'split_diagonal_alt',
+    'split_horizontal',
+    'split_vertical',
+    'wipe_left',
+    'wipe_right',
+    'wipe_top',
+    'wipe_bottom'
+  ];
 
   const handleSelectState = (stateProps) => {
     const found = ALL_INDIA_STATES.find(
@@ -53,9 +71,33 @@ export default function App() {
     }
   };
 
-  const handleThemeSelect = (theme) => {
-    setCurrentTheme(theme);
+  const handleThemeSelect = (newTheme) => {
+    if (newTheme.id === currentTheme.id || isThemeTransitioning) {
+      setIsThemeMenuOpen(false);
+      return;
+    }
+
     setIsThemeMenuOpen(false);
+
+    // Pick a transition type dynamically (e.g. diagonal, diamond, split)
+    const randomTran = transitionTypes[Math.floor(Math.random() * transitionTypes.length)];
+    setTransitionType(randomTran);
+    setTargetTransitionTheme(newTheme);
+    setIsThemeTransitioning(true);
+
+    // Mid-point of animation: apply new theme colors while translucent glassy panels cover the screen
+    const changePoint = 550; // ms (half of 1.1s)
+    const totalDuration = 1100; // ms
+
+    setTimeout(() => {
+      setCurrentTheme(newTheme);
+    }, changePoint);
+
+    // Reset transition overlay at end of animation
+    setTimeout(() => {
+      setIsThemeTransitioning(false);
+      setTargetTransitionTheme(null);
+    }, totalDuration);
   };
 
   return (
@@ -91,8 +133,29 @@ export default function App() {
           </span>
         </div>
 
-        {/* Right Controls: Theme Switcher Button + AI Modal */}
+        {/* Right Controls: Back to Main Website / Home, Reset, Theme Switcher Button + AI Modal */}
         <div className="flex items-center gap-2 relative">
+          {/* Back to Main Website / Home Button */}
+          <a
+            href="/"
+            onClick={(e) => {
+              // If state is selected, reset to all India; otherwise follow href
+              if (selectedState) {
+                e.preventDefault();
+                handleResetAllIndia();
+              }
+            }}
+            className="px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center gap-1.5 border transition hover:bg-white/10 text-white shadow-sm"
+            style={{
+              backgroundColor: currentTheme.surfaceMuted,
+              borderColor: currentTheme.borderLight
+            }}
+            title="Return to Main Website / Home Overview"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" style={{ color: currentTheme.accent }} />
+            <span>Back to Main Website</span>
+          </a>
+
           {/* Reset Map View Button */}
           {selectedState && (
             <button
@@ -222,6 +285,7 @@ export default function App() {
             onSelectState={handleSelectState}
             claims={MOCK_CLAIMS}
             theme={currentTheme}
+            onSelectClaim={handleSelectClaim}
             onViewClaims={(state) => {
               setIsAiModalOpen(true);
             }}
@@ -279,6 +343,13 @@ export default function App() {
       <DistrictAIModal
         isOpen={isAiModalOpen}
         onClose={() => setIsAiModalOpen(false)}
+      />
+
+      {/* CodePen EasyTransitions Theme Animation with Translucent Glass */}
+      <EasyThemeTransition
+        isTransitioning={isThemeTransitioning}
+        transitionType={transitionType}
+        targetTheme={targetTransitionTheme}
       />
     </div>
   );
