@@ -457,6 +457,52 @@ export const ALL_INDIA_STATES = indiaSvgData.map(s => {
   };
 });
 
+import { ALL_INDIA_DISTRICTS, DISTRICT_ANOMALY_SUMMARY } from './districtAnomaliesData';
+
+export { ALL_INDIA_DISTRICTS, DISTRICT_ANOMALY_SUMMARY };
+
+// Pan-India District Anomaly Claims spanning North, Central, East, West, South, North-East, and Islands
+export const PAN_INDIA_DISTRICT_ANOMALIES = ALL_INDIA_DISTRICTS.flatMap(district => 
+  (district.anomalies || []).map(anom => ({
+    id: anom.id,
+    claim_id: anom.id,
+    district_id: district.id,
+    districtName: district.name,
+    stateId: district.stateId,
+    stateCode: district.stateCode,
+    stateName: district.state,
+    zone: district.zone,
+    claimantName: anom.claimant,
+    claimant_name: anom.claimant,
+    tribe: anom.tribe || district.tribes,
+    gramSabha: anom.gramSabha,
+    claimant_type: anom.type === 'community' ? 'Community' : 'Individual',
+    type: anom.type,
+    status: anom.status || 'delayed',
+    days_pending: anom.daysPending,
+    daysPending: anom.daysPending,
+    area_ha: anom.areaHa,
+    areaHa: anom.areaHa,
+    vegetation_loss_index: anom.severity === 'critical' ? 0.72 : anom.severity === 'high' ? 0.48 : 0.22,
+    vegetationLossIndex: anom.severity === 'critical' ? 0.72 : anom.severity === 'high' ? 0.48 : 0.22,
+    anomaly_tags: [anom.severity, 'sdlc_delayed', 'boundary_dispute'],
+    anomalyReason: anom.reason,
+    sdlcBlocker: anom.sdlcBlocker,
+    severity: anom.severity,
+    district_size_km2: district.size_km2,
+    district_size_ha: district.size_ha,
+    district_forest_cover_km2: district.forest_cover_km2,
+    district_forest_cover_pct: district.forest_cover_pct,
+    district_population: district.total_population,
+    district_tribal_population: district.tribal_population,
+    district_tribal_pct: district.tribal_pct,
+    district_tribes: district.tribes,
+    district_anomaly_count: district.anomaly_count,
+    coordinates: anom.coordinates, // [lat, lon]
+    isAnomaly: true
+  }))
+);
+
 // Curated Anomaly Claims from backend/data/claims.json
 export const CURATED_ANOMALY_CLAIMS = (curatedClaimsGeoJson?.features || []).map(feat => {
   const p = feat.properties;
@@ -523,6 +569,7 @@ function generateCadastralPolygon(lat, lon, areaHa, seedStr) {
 
 // Mock Claims for all regions
 const RAW_MOCK_CLAIMS = [
+  ...PAN_INDIA_DISTRICT_ANOMALIES,
   ...CURATED_ANOMALY_CLAIMS,
   // Manipur 16 Authentic Monitored Claims (6 Approved, 10 Pending with 3 Anomalies, totaling 131.7 Ha)
   {
@@ -1525,17 +1572,59 @@ export const MOCK_CLAIMS = RAW_MOCK_CLAIMS.map(c => {
 
 export const INDIA_STATES_GEOJSON = {
   type: "FeatureCollection",
-  features: realIndiaStatesGeoJson.features.map(f => {
-    const matchedState = ALL_INDIA_STATES.find(s => s.id === f.id || s.code === f.properties?.code);
-    return {
-      ...f,
-      id: matchedState ? matchedState.id : f.id,
-      properties: {
-        ...(matchedState || {}),
-        ...f.properties
-      }
-    };
-  })
+  features: (() => {
+    const list = realIndiaStatesGeoJson.features.map(f => {
+      const matchedState = ALL_INDIA_STATES.find(s => s.id === f.id || s.code === f.properties?.code);
+      return {
+        ...f,
+        id: matchedState ? matchedState.id : f.id,
+        properties: {
+          ...(matchedState || {}),
+          ...f.properties
+        }
+      };
+    });
+
+    // Ensure Lakshadweep (INLD) exists as a valid GeoJSON polygon feature for hover and interaction
+    const hasLD = list.some(f => f.id === 'INLD' || f.properties?.code === 'LD');
+    if (!hasLD) {
+      const ldState = ALL_INDIA_STATES.find(s => s.id === 'INLD' || s.code === 'LD') || {
+        id: 'INLD',
+        code: 'LD',
+        name: 'Lakshadweep',
+        totalClaims: 340,
+        delayedClaims: 18,
+        anomalies: 2,
+        districtsCount: 1,
+        forestCoverKm2: '27 km²',
+        tribalPopulationPct: '94.8%'
+      };
+
+      list.push({
+        type: "Feature",
+        id: "INLD",
+        properties: {
+          ...ldState,
+          id: "INLD",
+          code: "LD",
+          name: "Lakshadweep"
+        },
+        geometry: {
+          type: "MultiPolygon",
+          coordinates: [
+            // Kavaratti & surrounding atoll box
+            [[[72.58, 10.51], [72.70, 10.51], [72.70, 10.63], [72.58, 10.63], [72.58, 10.51]]],
+            // Agatti atoll box
+            [[[72.15, 10.80], [72.24, 10.80], [72.24, 10.90], [72.15, 10.90], [72.15, 10.80]]],
+            // Minicoy southern atoll box
+            [[[72.98, 8.24], [73.10, 8.24], [73.10, 8.35], [72.98, 8.35], [72.98, 8.24]]]
+          ]
+        }
+      });
+    }
+
+    return list;
+  })()
 };
 
 export const INDIA_MASK_GEOJSON = indiaMaskGeoJson;
