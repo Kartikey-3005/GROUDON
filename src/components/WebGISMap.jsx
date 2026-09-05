@@ -5,7 +5,8 @@ import {
   GeoJSON, 
   CircleMarker, 
   Polygon,
-  Popup, 
+  Popup,
+  Tooltip,
   useMap 
 } from 'react-leaflet';
 import { 
@@ -107,10 +108,10 @@ function MapController({ selectedState, resetTrigger, activeClaim, onMapReady, o
       if (bounds) {
         const isSmallTerritory = selectedState.code === 'LD' || selectedState.code === 'GA' || selectedState.code === 'PY';
         map.fitBounds(bounds, {
-          padding: [45, 45],
-          maxZoom: isSmallTerritory ? 10.5 : 9.5,
+          padding: [30, 30],
+          maxZoom: isSmallTerritory ? 12.0 : 10.5,
           animate: true,
-          duration: 1.2
+          duration: 1.0
         });
       } else if (selectedState.center) {
         map.flyTo(selectedState.center, selectedState.zoom || 8, {
@@ -141,7 +142,8 @@ export default function WebGISMap({
   const t = {
     maskColor: theme?.maskColor || '#080402',
     stateStroke: theme?.stateStroke || '#dfcca9',
-    stateHover: theme?.stateHover || '#fef08a',
+    stateHover: theme?.stateHover || '#f97316',
+    stateHoverFill: theme?.stateHoverFill || theme?.accent || '#ea580c',
     surface: theme?.surface || '#120a06',
     surfaceMuted: theme?.surfaceMuted || '#1a0e08',
     surfaceBorder: theme?.surfaceBorder || '#452615',
@@ -216,9 +218,23 @@ export default function WebGISMap({
     };
   }, [selectedState]);
 
-  // Filter claims: ONLY show dots when a state is clicked / selected
+  // Filter claims: Show pan-India anomalies in All-India mode, or filter by selected state
   const filteredClaims = useMemo(() => {
-    if (!selectedState) return [];
+    if (!selectedState) {
+      // In Pan-India view: Show all anomalies scattered across all 7 zones of India!
+      return claimsData.filter(claim => {
+        if (!claim.isAnomaly && claim.status !== 'delayed') return false;
+        if (statusFilter !== 'all') {
+          if (statusFilter === 'delayed' && !(claim.status === 'delayed' || (claim.days_pending >= 300 || claim.daysPending >= 300))) {
+            return false;
+          }
+          if (statusFilter !== 'delayed' && claim.status !== statusFilter) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
 
     const stateId = selectedState.id || (selectedState.code ? `IN${selectedState.code}` : null);
     const stateCode = selectedState.code || (selectedState.id ? selectedState.id.replace('IN', '') : null);
@@ -333,10 +349,10 @@ export default function WebGISMap({
 
     if (isHovered) {
       return {
-        fillColor: t.stateHover,
-        fillOpacity: 0.12,
-        color: t.stateHover,
-        weight: 2.0,
+        fillColor: t.stateHoverFill || t.accent,
+        fillOpacity: 0.28,
+        color: t.stateHover || t.accent,
+        weight: 2.6,
         opacity: 1.0,
       };
     }
@@ -370,9 +386,9 @@ export default function WebGISMap({
       mouseover: (e) => {
         setHoveredDistrict(p);
         e.target.setStyle({
-          fillOpacity: 0.20,
-          weight: 2.0,
-          color: t.stateHover || '#fef08a'
+          fillOpacity: 0.22,
+          weight: 2.2,
+          color: t.stateHover || t.accent
         });
       },
       mouseout: (e) => {
@@ -401,9 +417,35 @@ export default function WebGISMap({
 
   // State Event Listeners: smooth hover and click to enter state view
   const onEachState = (feature, layer) => {
+    const props = feature.properties || {};
+    const stateName = props.name || 'State';
+    const stateCode = props.code || (props.id ? props.id.replace('IN', '') : 'IN');
+    const totalClaims = props.totalClaims ? (props.totalClaims > 1000 ? Math.round(props.totalClaims / 1000).toLocaleString() + 'k' : props.totalClaims.toLocaleString()) : '156';
+    const anomaliesCount = props.anomalies !== undefined ? props.anomalies : (props.criticalAlerts ? props.criticalAlerts * 4 + 3 : 11);
+
+    // Bind realistic floating state card matching theme & user's reference design
+    layer.bindTooltip(
+      `<div style="background: ${t.surface}fa; border: 1.5px solid ${t.borderLight}; border-radius: 12px; padding: 12px 14px; min-width: 195px; box-shadow: 0 12px 30px rgba(0,0,0,0.85); font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; cursor: pointer; pointer-events: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px;">
+          <span style="font-weight: 700; color: ${t.stateHover || '#fde68a'}; font-size: 13.5px; letter-spacing: -0.2px;">${stateName}</span>
+          <span style="background: rgba(255,255,255,0.12); color: ${t.textSecondary || '#cbd5e1'}; font-size: 9.5px; font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid ${t.surfaceBorder};">${stateCode}</span>
+        </div>
+        <div style="color: ${t.textSecondary || '#cbd5e1'}; font-size: 11px; margin-bottom: 3px;">Total Claims: <strong style="color: #ffffff; font-weight: 700;">${totalClaims}</strong></div>
+        <div style="color: ${t.textSecondary || '#cbd5e1'}; font-size: 11px; margin-bottom: 10px;">Anomalies: <strong style="color: #ffffff; font-weight: 700;">${anomaliesCount}</strong></div>
+        <div style="background: ${t.accent}; color: #ffffff; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 11px; text-align: center; box-shadow: 0 2px 8px ${t.accent}66;">
+          Click to view state monitoring &rarr;
+        </div>
+      </div>`,
+      { 
+        sticky: true, 
+        opacity: 0.98, 
+        className: 'state-hover-card-tooltip',
+        offset: [15, 0]
+      }
+    );
+
     layer.on({
       click: () => {
-        const props = feature.properties;
         if (selectedState && (selectedState.id === props.id || selectedState.code === props.code)) {
           onResetAllIndia();
         } else {
@@ -412,7 +454,12 @@ export default function WebGISMap({
       },
       mouseover: (e) => {
         setHoveredState(feature.properties);
-        e.target.setStyle({ fillOpacity: 0.12, weight: 2.0, color: '#fef08a' });
+        e.target.setStyle({
+          fillColor: t.stateHoverFill || t.accent,
+          fillOpacity: 0.28,
+          weight: 2.6,
+          color: t.stateHover || t.accent
+        });
       },
       mouseout: (e) => {
         setHoveredState(null);
@@ -423,12 +470,23 @@ export default function WebGISMap({
     });
   };
 
-  // Clean Administrative Marker Colors (No anomaly alarms or pulsing rings)
+  // Administrative & Anomaly Marker Colors
+  // - Crimson / Red: Critical Anomaly
+  // - Orange: High Delay Anomaly
+  // - Amber: Anomaly Warning / Pending
   // - Green: Approved Titles
   // - Indigo: Community Forest Resource (CFR)
   // - Rose: Disputed / In Review
-  // - Amber: Pending Field Verification
   const getMarkerColor = (claim) => {
+    if (claim.isAnomaly) {
+      if (claim.severity === 'critical') {
+        return { fill: '#ef4444', border: '#7f1d1d', label: 'Critical Anomaly' };
+      }
+      if (claim.severity === 'high') {
+        return { fill: '#f97316', border: '#9a3412', label: 'High Delay Anomaly' };
+      }
+      return { fill: '#eab308', border: '#854d0e', label: 'Anomaly Flagged' };
+    }
     const status = claim.status;
     const isCommunity = (claim.claimant_type || claim.type || '').toLowerCase() === 'community';
 
@@ -452,10 +510,10 @@ export default function WebGISMap({
       <MapContainer
         center={[22.5, 79.5]}
         zoom={5}
-        minZoom={4.2}
-        maxZoom={19}
+        minZoom={4.0}
+        maxZoom={20}
         maxBounds={[ [2.0, 60.0], [39.0, 102.0] ]}
-        maxBoundsViscosity={1.0}
+        maxBoundsViscosity={0.7}
         scrollWheelZoom={true}
         className="w-full h-full z-10"
         style={{ backgroundColor: t.maskColor }}
@@ -469,37 +527,37 @@ export default function WebGISMap({
           onZoomChange={setCurrentZoom}
           statesGeoJson={statesGeoJson}
         />
-        {/* Primary Basemap Tile Layer - Esri World Imagery Satellite (Smooth zoom, zero glitches) */}
+        {/* Primary Basemap Tile Layer - Esri World Imagery Satellite */}
         <TileLayer
           key={baseLayer}
           attribution={basemapTiles[baseLayer].attribution}
           url={basemapTiles[baseLayer].url}
-          maxZoom={19}
+          maxZoom={20}
+          maxNativeZoom={19}
           noWrap={true}
         />
 
-        {/* Esri Reference Overlay: High-detail place names, district boundaries, topography, and roads on satellite */}
+        {/* Esri Reference Overlay: High-detail place names and boundaries */}
         {baseLayer === 'satellite' && (
           <TileLayer
             key="esri-reference-overlay"
             url={getEsriReferenceUrl()}
-            attribution=""
-            maxZoom={19}
-            opacity={0.82}
-            zIndex={400}
+            maxZoom={20}
+            maxNativeZoom={19}
+            noWrap={true}
           />
         )}
 
-        {/* Dynamic Inverted Mask: Smoothly isolates selected state or entire India */}
+        {/* Dynamic Dark Mask Outer World Ring - zero stroke to eliminate any line or square outlines */}
         <GeoJSON
-          key={`mask-${selectedState ? (selectedState.id || selectedState.code || selectedState.name) : 'all-india'}-${t.maskColor}`}
+          key={`mask-${selectedState ? (selectedState.id || selectedState.code) : 'all'}-${t.maskColor}`}
           data={activeMaskGeoJson}
           style={{
             fillColor: t.maskColor,
-            fillOpacity: 1.0,
-            color: t.maskColor,
-            weight: 0.5,
-            opacity: 1.0
+            fillOpacity: 0.94,
+            color: 'transparent',
+            weight: 0,
+            opacity: 0
           }}
           interactive={false}
         />
@@ -524,153 +582,28 @@ export default function WebGISMap({
           />
         )}
 
-        {/* Claim Points Plotted on Map */}
-        {filteredClaims.map((claim) => {
-          const coords = claim.coordinates || (claim.lat && claim.lon ? [claim.lat, claim.lon] : null);
-          if (!coords) return null;
-
-          const colors = getMarkerColor(claim);
-          const claimId = claim.claim_id || claim.id;
-          const isCurrentActive = activeClaim && (activeClaim.id === claimId || activeClaim.claim_id === claimId);
-          const isCommunity = (claim.claimant_type || claim.type || '').toLowerCase() === 'community';
-          const daysPending = claim.days_pending || claim.daysPending || 0;
-
-          return (
-            <React.Fragment key={claimId}>
-              {/* Authentic Cadastral Land Parcel Boundary Polygon */}
-              {showParcels && claim.plot_polygon && (
-                <Polygon
-                  positions={claim.plot_polygon}
-                  eventHandlers={{
-                    click: () => onSelectClaim && onSelectClaim(claim)
-                  }}
-                  pathOptions={{
-                    color: isCurrentActive ? '#38bdf8' : colors.fill,
-                    weight: isCurrentActive ? 3.5 : 2,
-                    fillColor: colors.fill,
-                    fillOpacity: isCurrentActive ? 0.45 : 0.22,
-                    dashArray: isCurrentActive ? undefined : '4, 4'
-                  }}
-                />
-              )}
-
-              {/* Selection Halo for Active Selected Claim */}
-              {isCurrentActive && (
-                <CircleMarker
-                  center={coords}
-                  radius={14}
-                  pathOptions={{
-                    color: '#38bdf8',
-                    fillColor: '#38bdf8',
-                    fillOpacity: 0.25,
-                    weight: 2,
-                    dashArray: '3, 3'
-                  }}
-                />
-              )}
-
-              {/* Main Claim Circle Marker */}
-              <CircleMarker
-                center={coords}
-                radius={isCommunity ? 7.5 : 5.5}
-                eventHandlers={{
-                  click: () => onSelectClaim && onSelectClaim(claim)
-                }}
-                pathOptions={{
-                  fillColor: colors.fill,
-                  fillOpacity: 0.95,
-                  color: isCurrentActive ? '#ffffff' : colors.border,
-                  weight: isCurrentActive ? 2.8 : 1.2,
-                }}
-              >
-                <Popup className="custom-leaflet-popup">
-                  <div className="w-64 text-slate-200">
-                    <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-800">
-                      <div className="flex items-center gap-1.5">
-                        {isCommunity ? (
-                          <span className="p-1 rounded bg-indigo-500/20 text-indigo-300">
-                            <Users className="w-3.5 h-3.5" />
-                          </span>
-                        ) : (
-                          <span className="p-1 rounded bg-emerald-500/20 text-emerald-300">
-                            <User className="w-3.5 h-3.5" />
-                          </span>
-                        )}
-                        <div>
-                          <p className="text-[10px] font-mono text-slate-400 leading-none">
-                            {claimId}
-                          </p>
-                          <span className="text-[9px] font-semibold text-slate-300 uppercase">
-                            {isCommunity ? 'Community Right (CFR)' : 'Individual Right (IFR)'}
-                          </span>
-                        </div>
-                      </div>
-
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded capitalize ${
-                        claim.status === 'approved' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' :
-                        claim.status === 'pending' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
-                        'bg-slate-700/50 text-slate-300 border border-slate-600'
-                      }`}>
-                        {claim.status}
-                      </span>
-                    </div>
-
-                    <p className="text-xs font-bold text-white mb-1">
-                      {claim.claimant_name || claim.claimantName || 'Tribal Claimant'}
-                    </p>
-
-                    {/* Cadastral Area & Georeference Badge */}
-                    <div className="flex items-center justify-between text-[10px] text-slate-300 mb-1.5 px-2 py-1 rounded bg-slate-900/90 border border-slate-800">
-                      <span className="text-slate-400 flex items-center gap-1">
-                        <Layers className="w-3 h-3 text-emerald-400" />
-                        Cadastral Parcel:
-                      </span>
-                      <span className="font-bold text-emerald-300 font-mono">
-                        {claim.area_ha || claim.areaHa || 2.0} Ha <span className="text-slate-500 font-normal">({Math.round((claim.area_ha || claim.areaHa || 2.0) * 10000).toLocaleString()} m²)</span>
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-1 text-[10px] mb-0.5">
-                      <div className="bg-slate-900/80 p-1.5 rounded border border-slate-800">
-                        <span className="text-slate-400 block text-[9px]">District</span>
-                        <span className="font-semibold text-slate-200 uppercase">{claim.district_id || claim.districtName || 'Territory'}</span>
-                      </div>
-                      <div className="bg-slate-900/80 p-1.5 rounded border border-slate-800">
-                        <span className="text-slate-400 block text-[9px]">Verification Age</span>
-                        <span className="font-bold text-slate-200">
-                          {daysPending} days
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Popup>
-              </CircleMarker>
-            </React.Fragment>
-          );
-        })}
-
-        {/* Lakshadweep Islands Archipelago Markers (Visible ONLY when Lakshadweep is selected) */}
-        {selectedState && (selectedState.code === 'LD' || selectedState.id === 'INLD') && LAKSHADWEEP_ISLANDS.map((isl) => {
-          const isLdSelected = true;
+        {/* Lakshadweep Islands Archipelago Markers (Always visible and interactive for seamless Lakshadweep hovering & selection) */}
+        {LAKSHADWEEP_ISLANDS.map((isl) => {
+          const isLdSelected = selectedState && (selectedState.code === 'LD' || selectedState.id === 'INLD');
           return (
             <React.Fragment key={isl.name}>
               {/* Subtle outer halo for islands */}
               <CircleMarker
                 center={isl.coords}
-                radius={currentZoom >= 7 ? 12 : (isl.isCapital || isLdSelected ? 8 : 6)}
+                radius={currentZoom >= 7 ? 14 : (isl.isCapital || isLdSelected ? 9 : 7)}
                 pathOptions={{
-                  color: isLdSelected ? t.accent : t.stateStroke,
+                  color: isLdSelected ? t.accent : '#fef08a',
                   fillColor: t.accent,
-                  fillOpacity: isLdSelected ? 0.35 : 0.15,
-                  weight: 1,
+                  fillOpacity: isLdSelected ? 0.35 : 0.18,
+                  weight: 1.5,
                   dashArray: '2, 2'
                 }}
                 interactive={false}
               />
-              {/* Island Point Marker */}
+              {/* Island Point Marker with Tooltip */}
               <CircleMarker
                 center={isl.coords}
-                radius={currentZoom >= 7 ? 6 : (isl.isCapital ? 4.5 : 3.5)}
+                radius={currentZoom >= 7 ? 6.5 : (isl.isCapital ? 5 : 4)}
                 eventHandlers={{
                   click: () => {
                     const ld = {
@@ -678,26 +611,59 @@ export default function WebGISMap({
                       code: 'LD',
                       name: 'Lakshadweep',
                       center: [10.56, 72.64],
-                      zoom: 9
+                      zoom: 9,
+                      totalClaims: 340,
+                      anomalies: 2
                     };
                     onSelectState(ld);
                   },
-                  mouseover: () => setHoveredState({ id: 'INLD', code: 'LD', name: 'Lakshadweep' }),
+                  mouseover: () => setHoveredState({ id: 'INLD', code: 'LD', name: 'Lakshadweep', totalClaims: 340, anomalies: 2 }),
                   mouseout: () => setHoveredState(null)
                 }}
                 pathOptions={{
-                  fillColor: isLdSelected ? t.accent : '#ffffff',
+                  fillColor: isLdSelected ? t.accent : (t.stateHoverFill || t.accent),
                   fillOpacity: 0.95,
-                  color: isLdSelected ? '#ffffff' : t.stateStroke,
+                  color: t.stateHover || '#ffffff',
                   weight: 2
                 }}
               >
-                <Popup className="custom-leaflet-popup">
-                  <div className="text-slate-200 text-xs font-mono">
-                    <div className="font-bold text-white mb-0.5">{isl.name} Island</div>
-                    <div className="text-[10px]" style={{ color: t.textSecondary }}>Lakshadweep Union Territory</div>
+                <Tooltip
+                  sticky={true}
+                  opacity={0.98}
+                  className="state-hover-card-tooltip"
+                  offset={[15, 0]}
+                >
+                  <div style={{
+                    background: `${t.surface}fa`,
+                    border: `1.5px solid ${t.borderLight}`,
+                    borderRadius: '12px',
+                    padding: '12px 14px',
+                    minWidth: '195px',
+                    boxShadow: '0 12px 30px rgba(0,0,0,0.85)',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    cursor: 'pointer',
+                    pointerEvents: 'none'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '7px' }}>
+                      <span style={{ fontWeight: 700, color: t.stateHover || '#fde68a', fontSize: '13.5px', letterSpacing: '-0.2px' }}>Lakshadweep ({isl.name})</span>
+                      <span style={{ background: 'rgba(255,255,255,0.12)', color: t.textSecondary || '#cbd5e1', fontSize: '9.5px', fontWeight: 600, padding: '1px 6px', borderRadius: '4px', border: `1px solid ${t.surfaceBorder}` }}>LD</span>
+                    </div>
+                    <div style={{ color: t.textSecondary || '#cbd5e1', fontSize: '11px', marginBottom: '3px' }}>Total Claims: <strong style={{ color: '#ffffff', fontWeight: 700 }}>340</strong></div>
+                    <div style={{ color: t.textSecondary || '#cbd5e1', fontSize: '11px', marginBottom: '10px' }}>Anomalies: <strong style={{ color: '#ffffff', fontWeight: 700 }}>2</strong></div>
+                    <div style={{
+                      background: t.accent,
+                      color: '#ffffff',
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      fontWeight: 700,
+                      fontSize: '11px',
+                      textAlign: 'center',
+                      boxShadow: `0 2px 8px ${t.accent}66`
+                    }}>
+                      Click to view state monitoring &rarr;
+                    </div>
                   </div>
-                </Popup>
+                </Tooltip>
               </CircleMarker>
             </React.Fragment>
           );
@@ -807,9 +773,12 @@ export default function WebGISMap({
             </>
           ) : (
             <>
-              <span>Hover a state to view details</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-white font-medium">Pan-India FRA Monitoring</span>
               <span style={{ color: t.textMuted }}>•</span>
-              <span>Click to view state</span>
+              <span className="text-stone-300">National WebGIS Overview</span>
+              <span style={{ color: t.textMuted }}>•</span>
+              <span style={{ color: t.accent }}>Hover or click any state to inspect</span>
             </>
           )}
         </div>
