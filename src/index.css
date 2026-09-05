@@ -125,3 +125,224 @@
 .district-leaflet-tooltip::before {
   border-top-color: rgba(15, 23, 42, 0.94) !important;
 }
+
+/* User reference screenshot state hover card tooltip */
+.state-hover-card-tooltip {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.state-hover-card-tooltip::before {
+  display: none !important;
+}
+
+/* =========================================================================
+   EASY THEME TRANSITIONS (CodePen Reimplementation with Translucent Glass)
+   ========================================================================= */
+.easytransitions_overlay {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.easytransitions_transition {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.easytransitions_part {
+  width: 250px;
+  height: 250px;
+  background: var(--theme-transition-bg, rgba(234, 88, 12, 0.45));
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  border: 1.5px solid var(--theme-transition-border, rgba(234, 88, 12, 0.65));
+  box-shadow: 0 0 50px var(--theme-transition-color, rgba(234, 88, 12, 0.4));
+  position: absolute;
+  transform: scale(0);
+  z-index: 99999;
+  border-radius: 8px;
+}
+
+.easytransitions_part.split_diagonal,
+.easytransitions_part.split_diagonal_alt,
+.easytransitions_part.split_diamond {
+  animation: easytrans_diamond 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform: scale(0) rotate(45deg); 
+}
+
+.easytransitions_part.split_horizontal,
+.easytransitions_part.wipe_top,
+.easytransitions_part.wipe_bottom {
+  transform: scaleY(0); 
+}
+
+.easytransitions_part.split_vertical,
+.easytransitions_part.wipe_left,
+.easytransitions_part.wipe_right {
+  transform: scaleX(0);
+}
+
+.easytransitions_transition__part-1 {
+  left: -125px;
+  top: -125px;
+}
+.easytransitions_transition__part-1.split_diagonal_alt,
+.easytransitions_transition__part-1.split_vertical,
+.easytransitions_transition__part-1.split_horizontal {
+  display: none !important;
+}
+
+.easytransitions_transition__part-2 {
+  bottom: -125px;
+  left: -125px;
+}
+.easytransitions_transition__part-2.split_diagonal,
+.easytransitions_transition__part-2.split_vertical,
+.easytransitions_transition__part-2.split_horizontal {
+  display: none !important;
+}
+
+.easytransitions_transition__part-3 {
+  top: -125px;
+  right: -125px;
+}
+.easytransitions_transition__part-3.split_diagonal,
+.easytransitions_transition__part-3.split_vertical,
+.easytransitions_transition__part-3.split_horizontal {
+  display: none !important;
+}
+
+.easytransitions_transition__part-4 {
+  bottom: -125px;
+  right: -125px;
+}
+.easytransitions_transition__part-4.split_diagonal_alt,
+.easytransitions_transition__part-4.split_vertical,
+.easytransitions_transition__part-4.split_horizontal {
+  display: none !important;
+}
+
+.easytransitions_transition__part-5 {
+  width: 50% !important;
+  height: 100% !important;
+  display: none;
+  left: 0px;
+  top: 0px;
+  transform-origin: 0px 50%;
+  animation: easytrans_vertical 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.easytransitions_transition__part-5.split_vertical,
+.easytransitions_transition__part-5.wipe_left {
+  display: block !important;
+}
+
+.easytransitions_transition__part-6 {
+  width: 50% !important;
+  height: 100% !important;
+  display: none;
+  right: 0px;
+  top: 0px;
+  transform-origin: 100% 50%;
+  animation: easytrans_vertical_r 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.easytransitions_transition__part-6.split_vertical,
+.easytransitions_transition__part-6.wipe_right {
+  display: block !important;
+}
+
+.easytransitions_transition__part-7 {
+  width: 100% !important;
+  height: 50% !important;
+  display: none;
+  bottom: 0px;
+  left: 0px;
+  transform-origin: 50% 100%;
+  animation: easytrans_horizontal 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.easytransitions_transition__part-7.split_horizontal,
+.easytransitions_transition__part-7.wipe_bottom {
+  display: block !important;
+}
+
+.easytransitions_transition__part-8 {
+  width: 100% !important;
+  height: 50% !important;
+  display: none;
+  top: 0px;
+  left: 0px;
+  transform-origin: 50% 0px;
+  animation: easytrans_horizontal 1.1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.easytransitions_transition__part-8.split_horizontal,
+.easytransitions_transition__part-8.wipe_top {
+  display: block !important;
+}
+
+/* Keyframes matching the CodePen easing and expansion */
+@keyframes easytrans_diamond {
+  0% {
+    transform: rotate(45deg) scale(0);
+    opacity: 0.2;
+  }
+  50% {
+    transform: rotate(45deg) scale(22);
+    opacity: 0.95;
+  }
+  100% {
+    transform: rotate(45deg) scale(0);
+    opacity: 0;
+  }
+}
+
+@keyframes easytrans_vertical {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scaleX(2.5);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}
+
+@keyframes easytrans_vertical_r {
+  0% {
+    transform: scaleX(0);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scaleX(2.5);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}
+
+@keyframes easytrans_horizontal {
+  0% {
+    transform: scaleY(0);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scaleY(2.5);
+    opacity: 0.95;
+  }
+  100% {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+}
+
