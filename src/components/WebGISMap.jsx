@@ -570,7 +570,7 @@ export default function WebGISMap({
         center={[22.5, 79.5]}
         zoom={5}
         minZoom={4.0}
-        maxZoom={20}
+        maxZoom={19}
         maxBounds={[ [2.0, 60.0], [39.0, 102.0] ]}
         maxBoundsViscosity={0.7}
         scrollWheelZoom={true}
@@ -587,12 +587,13 @@ export default function WebGISMap({
           statesGeoJson={statesGeoJson}
         />
         {/* Primary Basemap Tile Layer - Esri World Imagery Satellite (Clean satellite imagery without cities/country labels) */}
+        {/* maxNativeZoom={18} prevents Esri from returning grey "Map data not yet available" placeholder tiles in regions where level 19 tiles are absent; Leaflet smoothly scales the crisp level 18 tiles */}
         <TileLayer
           key={baseLayer}
           attribution={basemapTiles[baseLayer].attribution}
           url={basemapTiles[baseLayer].url}
-          maxZoom={20}
-          maxNativeZoom={19}
+          maxZoom={19}
+          maxNativeZoom={18}
           noWrap={true}
         />
 
