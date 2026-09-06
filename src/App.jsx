@@ -343,6 +343,7 @@ export default function App() {
       <DistrictAIModal
         isOpen={isAiModalOpen}
         onClose={() => setIsAiModalOpen(false)}
+        theme={currentTheme}
       />
 
       {/* CodePen EasyTransitions Theme Animation with Translucent Glass */}

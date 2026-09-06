@@ -505,7 +505,7 @@ export default function WebGISMap({
   return (
     <div 
       className="relative w-full h-full overflow-hidden"
-      style={{ backgroundColor: t.maskColor }}
+      style={{ backgroundColor: '#000000' }}
     >
       <MapContainer
         center={[22.5, 79.5]}
@@ -516,7 +516,7 @@ export default function WebGISMap({
         maxBoundsViscosity={0.7}
         scrollWheelZoom={true}
         className="w-full h-full z-10"
-        style={{ backgroundColor: t.maskColor }}
+        style={{ backgroundColor: '#000000' }}
         zoomControl={false}
       >
         <MapController 
@@ -527,7 +527,7 @@ export default function WebGISMap({
           onZoomChange={setCurrentZoom}
           statesGeoJson={statesGeoJson}
         />
-        {/* Primary Basemap Tile Layer - Esri World Imagery Satellite */}
+        {/* Primary Basemap Tile Layer - Esri World Imagery Satellite (Clean satellite imagery without cities/country labels) */}
         <TileLayer
           key={baseLayer}
           attribution={basemapTiles[baseLayer].attribution}
@@ -537,24 +537,13 @@ export default function WebGISMap({
           noWrap={true}
         />
 
-        {/* Esri Reference Overlay: High-detail place names and boundaries */}
-        {baseLayer === 'satellite' && (
-          <TileLayer
-            key="esri-reference-overlay"
-            url={getEsriReferenceUrl()}
-            maxZoom={20}
-            maxNativeZoom={19}
-            noWrap={true}
-          />
-        )}
-
-        {/* Dynamic Dark Mask Outer World Ring - zero stroke to eliminate any line or square outlines */}
+        {/* Dynamic Pitch Black Mask Outer World Ring - zero stroke, complete black surround behind/around India */}
         <GeoJSON
-          key={`mask-${selectedState ? (selectedState.id || selectedState.code) : 'all'}-${t.maskColor}`}
+          key={`mask-${selectedState ? (selectedState.id || selectedState.code) : 'all'}-pitch-black`}
           data={activeMaskGeoJson}
           style={{
-            fillColor: t.maskColor,
-            fillOpacity: 0.94,
+            fillColor: '#000000',
+            fillOpacity: 1.0,
             color: 'transparent',
             weight: 0,
             opacity: 0
