@@ -133,6 +133,8 @@ export default function WebGISMap({
   claimsData = [],
   selectedState = null,
   onSelectState = () => {},
+  selectedDistrict = null,
+  onSelectDistrict = () => {},
   onResetAllIndia = () => {},
   resetTrigger = 0,
   activeClaim = null,
@@ -367,29 +369,85 @@ export default function WebGISMap({
     };
   };
 
-  // Detailed Administrative District Boundary Styling (Clean, delicate lines)
+  // Helper to check if a district feature is currently the active inspected district
+  const isDistrictSelected = (feature) => {
+    if (!selectedDistrict || !feature || !feature.properties) return false;
+    const p = feature.properties;
+    const distId = typeof selectedDistrict === 'string' ? selectedDistrict.toLowerCase() : (selectedDistrict.id || '').toLowerCase();
+    const distName = (typeof selectedDistrict === 'string' ? selectedDistrict : (selectedDistrict.name || selectedDistrict.shortName || '')).toLowerCase();
+    
+    const featId = (p.district_id || p.id || '').toLowerCase();
+    const featName = (p.name || '').toLowerCase();
+
+    // Direct match by ID or Name
+    if (featId && (featId === distId || featId.endsWith(distId) || distId.endsWith(featId))) return true;
+    if (featName && (featName === distName || distName.includes(featName) || featName.includes(distName))) return true;
+
+    // Backend district alias matching (dist_a = Dindori, dist_b = Mandla, dist_c = Korba, dist_d = Balaghat)
+    const backendAliases = {
+      'dist_a': ['dindori', 'mp_dindori'],
+      'dist_b': ['mandla', 'mp_mandla'],
+      'dist_c': ['korba', 'cg_korba'],
+      'dist_d': ['balaghat', 'mp_balaghat']
+    };
+    if (backendAliases[distId] && (backendAliases[distId].includes(featId) || backendAliases[distId].includes(featName))) {
+      return true;
+    }
+    return false;
+  };
+
+  // Detailed Administrative District Boundary Styling
+  // When inspected (e.g. Balaghat in the user's image), rendered with a crisp illuminated white boundary
   const getDistrictStyle = (feature) => {
+    const isSelected = isDistrictSelected(feature);
+
+    if (isSelected) {
+      return {
+        fillColor: '#38bdf8',
+        fillOpacity: 0.16,
+        color: '#ffffff',
+        weight: 2.8,
+        opacity: 1.0,
+        dashArray: undefined
+      };
+    }
+
     return {
       fillColor: t.accent,
-      fillOpacity: 0.04,
-      color: t.borderLight || '#9c7d61',
-      weight: 1.2,
-      opacity: 0.85,
-      dashArray: '3, 4'
+      fillOpacity: 0.03,
+      color: '#f8fafc',
+      weight: 1.0,
+      opacity: 0.35,
+      dashArray: '2, 3'
     };
   };
 
-  // District Hover & Information Tooltip
+  // District Hover & Information Tooltip + Click to Select
   const onEachDistrict = (feature, layer) => {
     const p = feature.properties || {};
+    const isSelected = isDistrictSelected(feature);
+
     layer.on({
+      click: () => {
+        if (onSelectDistrict) {
+          onSelectDistrict({
+            id: p.district_id || p.id,
+            name: p.name,
+            state: p.state,
+            properties: p
+          });
+        }
+      },
       mouseover: (e) => {
         setHoveredDistrict(p);
-        e.target.setStyle({
-          fillOpacity: 0.22,
-          weight: 2.2,
-          color: t.stateHover || t.accent
-        });
+        if (!isDistrictSelected(feature)) {
+          e.target.setStyle({
+            fillOpacity: 0.18,
+            weight: 2.0,
+            color: '#ffffff',
+            opacity: 0.85
+          });
+        }
       },
       mouseout: (e) => {
         setHoveredDistrict(null);
@@ -402,13 +460,16 @@ export default function WebGISMap({
     const areaKm2 = p.total_area_ha ? Math.round(p.total_area_ha / 100).toLocaleString() : null;
     layer.bindTooltip(
       `<div style="font-family: ui-sans-serif, system-ui; font-size: 11px; line-height: 1.4;">
-        <div style="font-weight: 700; color: #ffffff; font-size: 12px; margin-bottom: 2px;">${p.name || 'District'} District</div>
+        <div style="font-weight: 700; color: #ffffff; font-size: 12px; margin-bottom: 2px;">${p.name || 'District'} District ${isSelected ? '<span style="color:#38bdf8;font-size:10px;">(Inspected)</span>' : ''}</div>
         <div style="color: #cbd5e1; font-size: 10px; margin-bottom: 4px;">State: ${p.state || 'India'}</div>
         <div style="display: flex; flex-direction: column; gap: 2px; color: #94a3b8; font-size: 10px;">
           <span>Forest Cover: <strong style="color: #34d399;">${p.forest_cover_pct || 65}%</strong></span>
           <span>Tribal Population: <strong style="color: #60a5fa;">${p.tribal_population_pct || 40}%</strong></span>
           ${areaKm2 ? `<span>Area: <strong style="color: #f1f5f9;">${areaKm2} km²</strong></span>` : ''}
           ${p.claims_count ? `<span>Monitored Units: <strong style="color: #f59e0b;">${p.claims_count}</strong></span>` : ''}
+        </div>
+        <div style="margin-top: 5px; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.15); color: #38bdf8; font-size: 9.5px; font-weight: 600;">
+          Click to inspect district intelligence &rarr;
         </div>
       </div>`,
       { sticky: true, opacity: 0.95, className: 'district-leaflet-tooltip' }
@@ -470,36 +531,34 @@ export default function WebGISMap({
     });
   };
 
-  // Administrative & Anomaly Marker Colors
-  // - Crimson / Red: Critical Anomaly
-  // - Orange: High Delay Anomaly
-  // - Amber: Anomaly Warning / Pending
-  // - Green: Approved Titles
-  // - Indigo: Community Forest Resource (CFR)
-  // - Rose: Disputed / In Review
+  // Administrative & Anomaly Marker Colors matching the reference screenshot:
+  // - Vibrant Emerald Teal (#14b8a6): Approved titles
+  // - Warm Amber Orange (#f97316): Pending / Delayed verification
+  // - Coral Crimson (#f43f5e): Rejections & Critical Anomaly friction
+  // - Purple Indigo (#818cf8): Community Forest Resource (CFR)
   const getMarkerColor = (claim) => {
     if (claim.isAnomaly) {
       if (claim.severity === 'critical') {
-        return { fill: '#ef4444', border: '#7f1d1d', label: 'Critical Anomaly' };
+        return { fill: '#f43f5e', border: '#be123c', halo: '#fda4af', label: 'Critical Anomaly' };
       }
       if (claim.severity === 'high') {
-        return { fill: '#f97316', border: '#9a3412', label: 'High Delay Anomaly' };
+        return { fill: '#f97316', border: '#c2410c', halo: '#fdba74', label: 'High Delay Anomaly' };
       }
-      return { fill: '#eab308', border: '#854d0e', label: 'Anomaly Flagged' };
+      return { fill: '#f59e0b', border: '#b45309', halo: '#fde68a', label: 'Anomaly Flagged' };
     }
     const status = claim.status;
     const isCommunity = (claim.claimant_type || claim.type || '').toLowerCase() === 'community';
 
     if (status === 'approved') {
-      return { fill: '#10b981', border: '#059669', label: 'Approved' };
+      return { fill: '#14b8a6', border: '#0f766e', halo: '#5eead4', label: 'Approved Title' };
     }
     if (isCommunity) {
-      return { fill: '#6366f1', border: '#4338ca', label: 'Community CFR' };
+      return { fill: '#6366f1', border: '#4338ca', halo: '#a5b4fc', label: 'Community CFR' };
     }
     if (status === 'rejected') {
-      return { fill: '#f43f5e', border: '#be123c', label: 'Rejected' };
+      return { fill: '#f43f5e', border: '#9f1239', halo: '#fca5a5', label: 'Rejected' };
     }
-    return { fill: '#f59e0b', border: '#d97706', label: 'Pending Verification' };
+    return { fill: '#f97316', border: '#ea580c', halo: '#fdba74', label: 'Pending Verification' };
   };
 
   return (
@@ -563,7 +622,7 @@ export default function WebGISMap({
         {/* Detailed Administrative District Boundaries Layer */}
         {activeDistrictsGeoJson && (
           <GeoJSON
-            key={`districts-${selectedState ? (selectedState.code || selectedState.id) : 'all'}-${activeDistrictsGeoJson.features?.length}-${t.maskColor}`}
+            key={`districts-${selectedState ? (selectedState.code || selectedState.id) : 'all'}-${activeDistrictsGeoJson.features?.length}-${typeof selectedDistrict === 'string' ? selectedDistrict : (selectedDistrict?.id || selectedDistrict?.name || 'none')}-${t.maskColor}`}
             ref={districtGeoJsonRef}
             data={activeDistrictsGeoJson}
             style={getDistrictStyle}
@@ -651,6 +710,148 @@ export default function WebGISMap({
                     }}>
                       Click to view state monitoring &rarr;
                     </div>
+                  </div>
+                </Tooltip>
+              </CircleMarker>
+            </React.Fragment>
+          );
+        })}
+
+        {/* Monitored Claim & Anomaly Markers Layer */}
+        {filteredClaims.map((claim) => {
+          if (!claim.coordinates || claim.coordinates.length < 2) return null;
+          const isTargeted = activeClaim && (activeClaim.id === claim.id || activeClaim.claim_id === claim.claim_id);
+          const styling = getMarkerColor(claim);
+          const isAnomaly = claim.isAnomaly || claim.status === 'delayed';
+
+          // Check if this claim belongs to the currently inspected district (e.g. Balaghat in MP)
+          const distId = typeof selectedDistrict === 'string' ? selectedDistrict.toLowerCase() : (selectedDistrict?.id || '').toLowerCase();
+          const distName = (typeof selectedDistrict === 'string' ? selectedDistrict : (selectedDistrict?.name || selectedDistrict?.shortName || '')).toLowerCase();
+          const claimDist = (claim.district_id || claim.districtName || '').toLowerCase();
+
+          const isInSelectedDistrict = !!selectedDistrict && (
+            (distId && (claimDist.includes(distId) || distId.includes(claimDist))) ||
+            (distName && (claimDist.includes(distName) || distName.includes(claimDist))) ||
+            (distId === 'dist_d' && (claimDist.includes('balaghat') || claim.district_id === 'dist_d')) ||
+            (distId === 'dist_a' && (claimDist.includes('dindori') || claim.district_id === 'dist_a')) ||
+            (distId === 'dist_b' && (claimDist.includes('mandla') || claim.district_id === 'dist_b')) ||
+            (distId === 'dist_c' && (claimDist.includes('korba') || claim.district_id === 'dist_c'))
+          );
+
+          // Highlights matching screenshot: concentric white rings with luminous teal/cyan center
+          const isHighlighted = isTargeted || isInSelectedDistrict;
+
+          return (
+            <React.Fragment key={claim.id || claim.claim_id}>
+              {/* Outer Luminous Ring for claims in inspected district or targeted claim */}
+              {isHighlighted && (
+                <CircleMarker
+                  center={claim.coordinates}
+                  radius={isTargeted ? 20 : 15}
+                  pathOptions={{
+                    color: '#ffffff',
+                    fillColor: styling.fill,
+                    fillOpacity: 0.28,
+                    weight: 2.4,
+                    dashArray: '3, 4',
+                    className: 'luminous-claim-ring'
+                  }}
+                  interactive={false}
+                />
+              )}
+
+              {/* Secondary Concentric Glow Ring */}
+              {isHighlighted && (
+                <CircleMarker
+                  center={claim.coordinates}
+                  radius={isTargeted ? 12 : 9}
+                  pathOptions={{
+                    color: '#ffffff',
+                    fillColor: '#ffffff',
+                    fillOpacity: 0.45,
+                    weight: 1.8
+                  }}
+                  interactive={false}
+                />
+              )}
+
+              {/* Subtle Pulsing Ring for other Anomalous Claims outside inspected district */}
+              {!isHighlighted && isAnomaly && (
+                <CircleMarker
+                  center={claim.coordinates}
+                  radius={9}
+                  pathOptions={{
+                    color: styling.fill,
+                    fillColor: styling.fill,
+                    fillOpacity: 0.22,
+                    weight: 1.2,
+                    dashArray: '2, 3'
+                  }}
+                  interactive={false}
+                />
+              )}
+
+              {/* Core Claim Point Marker */}
+              <CircleMarker
+                center={claim.coordinates}
+                radius={isHighlighted ? 6.5 : isAnomaly ? 5.2 : 4.5}
+                eventHandlers={{
+                  click: () => onSelectClaim(claim)
+                }}
+                pathOptions={{
+                  fillColor: styling.fill,
+                  fillOpacity: 0.98,
+                  color: isHighlighted ? '#ffffff' : '#050505',
+                  weight: isHighlighted ? 2.2 : 1.4
+                }}
+              >
+                <Tooltip
+                  sticky={true}
+                  opacity={0.98}
+                  className="state-hover-card-tooltip"
+                  offset={[12, 0]}
+                >
+                  <div style={{
+                    background: '#0f172afa',
+                    border: `1.5px solid ${styling.fill}`,
+                    borderRadius: '10px',
+                    padding: '10px 12px',
+                    minWidth: '200px',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.9)',
+                    fontFamily: 'ui-monospace, monospace',
+                    cursor: 'pointer',
+                    pointerEvents: 'none'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                      <span style={{ fontWeight: 700, color: '#ffffff', fontSize: '12px' }}>
+                        {claim.claimantName || claim.claimant_name || claim.id}
+                      </span>
+                      <span style={{
+                        background: `${styling.fill}25`,
+                        color: styling.fill,
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: '4px',
+                        border: `1px solid ${styling.fill}60`
+                      }}>
+                        {styling.label}
+                      </span>
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '10.5px', marginBottom: '2px' }}>
+                      District: <strong style={{ color: '#cbd5e1' }}>{claim.districtName || claim.district_id || 'Tribal Circle'}</strong>
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '10.5px', marginBottom: '2px' }}>
+                      Tribe: <strong style={{ color: '#cbd5e1' }}>{claim.tribe || 'Customary Forest Dweller'}</strong>
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '10.5px', marginBottom: '2px' }}>
+                      Status: <strong style={{ color: styling.fill }}>{claim.status || 'Under Review'} ({claim.days_pending || claim.daysPending || 180}d)</strong>
+                    </div>
+                    {claim.anomalyReason && (
+                      <div style={{ color: '#fca5a5', fontSize: '10px', marginTop: '4px', borderTop: '1px solid #334155', paddingTop: '4px', lineHeight: '1.3' }}>
+                        ⚠ {claim.anomalyReason}
+                      </div>
+                    )}
                   </div>
                 </Tooltip>
               </CircleMarker>

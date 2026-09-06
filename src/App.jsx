@@ -20,6 +20,7 @@ import EasyThemeTransition from './components/EasyThemeTransition';
 export default function App() {
   // Start with All-India overview so full map is visible, and clicking any state isolates and zooms that state
   const [selectedState, setSelectedState] = useState(null);
+  const [selectedDistrict, setSelectedDistrict] = useState(null);
   const [activeClaim, setActiveClaim] = useState(null);
   const [resetTrigger, setResetTrigger] = useState(0);
 
@@ -52,11 +53,17 @@ export default function App() {
       s => s.id === stateProps.id || s.code === stateProps.code || s.name.toLowerCase() === (stateProps.name || '').toLowerCase()
     );
     setSelectedState(found || stateProps);
+    setSelectedDistrict(null);
     setActiveClaim(null);
+  };
+
+  const handleSelectDistrict = (dist) => {
+    setSelectedDistrict(dist);
   };
 
   const handleResetAllIndia = () => {
     setSelectedState(null);
+    setSelectedDistrict(null);
     setActiveClaim(null);
     setResetTrigger(prev => prev + 1);
   };
@@ -263,6 +270,8 @@ export default function App() {
             claimsData={MOCK_CLAIMS}
             selectedState={selectedState}
             onSelectState={handleSelectState}
+            selectedDistrict={selectedDistrict}
+            onSelectDistrict={handleSelectDistrict}
             onResetAllIndia={handleResetAllIndia}
             resetTrigger={resetTrigger}
             activeClaim={activeClaim}
@@ -283,6 +292,8 @@ export default function App() {
             selectedState={selectedState}
             statesList={ALL_INDIA_STATES}
             onSelectState={handleSelectState}
+            selectedDistrict={selectedDistrict}
+            onSelectDistrict={handleSelectDistrict}
             claims={MOCK_CLAIMS}
             theme={currentTheme}
             onSelectClaim={handleSelectClaim}

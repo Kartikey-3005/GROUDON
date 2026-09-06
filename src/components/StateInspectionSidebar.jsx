@@ -26,6 +26,8 @@ export default function StateInspectionSidebar({
   selectedState,
   statesList = [],
   onSelectState = () => {},
+  selectedDistrict = null,
+  onSelectDistrict = () => {},
   claims = [],
   onViewClaims = () => {},
   onSelectClaim = () => {},
@@ -151,11 +153,16 @@ export default function StateInspectionSidebar({
 
     checkBackend();
 
-    // Auto-select first district of activeState
+    // Auto-select initial district of activeState
     if (districtsList.length > 0) {
-      const firstDist = districtsList[0];
-      setSelectedDistrictId(firstDist.id);
-      loadDistrictAnalysis(firstDist.id, firstDist);
+      const matchProp = selectedDistrict ? districtsList.find(d => 
+        d.id?.toLowerCase() === selectedDistrict?.id?.toLowerCase() ||
+        d.name?.toLowerCase() === (selectedDistrict?.name || selectedDistrict)?.toLowerCase()
+      ) : null;
+      const targetDist = matchProp || districtsList[0];
+      setSelectedDistrictId(targetDist.id);
+      loadDistrictAnalysis(targetDist.id, targetDist);
+      if (onSelectDistrict) onSelectDistrict(targetDist);
     }
 
     return () => {
@@ -163,11 +170,27 @@ export default function StateInspectionSidebar({
     };
   }, [activeState.id, activeState.code, activeState.name]);
 
+  // Synchronize when outer selectedDistrict prop changes
+  useEffect(() => {
+    if (selectedDistrict && districtsList.length > 0) {
+      const distId = typeof selectedDistrict === 'string' ? selectedDistrict : (selectedDistrict.id || selectedDistrict.name);
+      const matched = districtsList.find(d => 
+        d.id?.toLowerCase() === distId?.toLowerCase() ||
+        d.name?.toLowerCase() === (selectedDistrict.name || distId)?.toLowerCase()
+      );
+      if (matched && matched.id.toLowerCase() !== selectedDistrictId.toLowerCase()) {
+        setSelectedDistrictId(matched.id);
+        loadDistrictAnalysis(matched.id, matched);
+      }
+    }
+  }, [selectedDistrict, districtsList]);
+
   // Handler when user clicks any of the district options
   const handleDistrictSelect = (districtId) => {
     setSelectedDistrictId(districtId);
     const distObj = districtsList.find(d => d.id.toLowerCase() === districtId.toLowerCase());
     loadDistrictAnalysis(districtId, distObj);
+    if (onSelectDistrict) onSelectDistrict(distObj || { id: districtId, name: districtId });
   };
 
   const loadDistrictAnalysis = async (districtId, distObj) => {

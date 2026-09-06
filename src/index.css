@@ -346,3 +346,29 @@
   }
 }
 
+/* Luminous Claim Halo and District Glow Animations */
+@keyframes halo-glow-pulse {
+  0% {
+    stroke-opacity: 0.9;
+    stroke-width: 2.2px;
+  }
+  50% {
+    stroke-opacity: 0.35;
+    stroke-width: 3.5px;
+  }
+  100% {
+    stroke-opacity: 0.9;
+    stroke-width: 2.2px;
+  }
+}
+
+.luminous-claim-ring {
+  animation: halo-glow-pulse 2.2s infinite ease-in-out;
+  filter: drop-shadow(0 0 8px rgba(45, 212, 191, 0.75));
+}
+
+.luminous-claim-ring-critical {
+  animation: halo-glow-pulse 1.8s infinite ease-in-out;
+  filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.85));
+}
+
