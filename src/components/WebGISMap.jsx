@@ -120,8 +120,12 @@ function MapController({ selectedState, resetTrigger, activeClaim, onMapReady, o
         });
       }
     } else {
-      // Pan-India Overview: instantly zoom out with zero animation, no effects
-      map.setView([22.5, 79.5], 5, { animate: false });
+      // Pan-India Overview: smooth cinematic zoom out back to whole country
+      map.flyTo([22.5, 79.5], 5, {
+        animate: true,
+        duration: 0.9,
+        easeLinearity: 0.25
+      });
     }
   }, [selectedState, resetTrigger, activeClaim, map, statesGeoJson]);
 
@@ -172,19 +176,19 @@ export default function WebGISMap({
 
   const handleZoomIn = () => {
     if (mapInstance) {
-      mapInstance.zoomIn();
+      mapInstance.zoomIn(1, { animate: true, duration: 0.45, easeLinearity: 0.25 });
     }
   };
 
   const handleZoomOut = () => {
     if (mapInstance) {
-      mapInstance.zoomOut(1, { animate: false });
+      mapInstance.zoomOut(1, { animate: true, duration: 0.45, easeLinearity: 0.25 });
     }
   };
 
   const handleFitIndia = () => {
     if (mapInstance) {
-      mapInstance.setView([22.5, 79.5], 5, { animate: false });
+      mapInstance.flyTo([22.5, 79.5], 5, { animate: true, duration: 0.8, easeLinearity: 0.25 });
     }
     onResetAllIndia();
   };
@@ -220,22 +224,11 @@ export default function WebGISMap({
     };
   }, [selectedState]);
 
-  // Filter claims: Show pan-India anomalies in All-India mode, or filter by selected state
+  // Filter claims: Only show dots/claims when a state is selected (hidden on the main all-India map overview)
   const filteredClaims = useMemo(() => {
     if (!selectedState) {
-      // In Pan-India view: Show all anomalies scattered across all 7 zones of India!
-      return claimsData.filter(claim => {
-        if (!claim.isAnomaly && claim.status !== 'delayed') return false;
-        if (statusFilter !== 'all') {
-          if (statusFilter === 'delayed' && !(claim.status === 'delayed' || (claim.days_pending >= 300 || claim.daysPending >= 300))) {
-            return false;
-          }
-          if (statusFilter !== 'delayed' && claim.status !== statusFilter) {
-            return false;
-          }
-        }
-        return true;
-      });
+      // Don't show dots on the main all-India map overview; only show when user clicks/selects a state
+      return [];
     }
 
     const stateId = selectedState.id || (selectedState.code ? `IN${selectedState.code}` : null);
@@ -403,22 +396,22 @@ export default function WebGISMap({
 
     if (isSelected) {
       return {
-        fillColor: '#38bdf8',
-        fillOpacity: 0.16,
-        color: '#ffffff',
-        weight: 2.8,
-        opacity: 1.0,
+        fillColor: 'transparent',
+        fillOpacity: 0,
+        color: '#38bdf8',
+        weight: 2.2,
+        opacity: 0.95,
         dashArray: undefined
       };
     }
 
     return {
-      fillColor: t.accent,
-      fillOpacity: 0.03,
+      fillColor: 'transparent',
+      fillOpacity: 0,
       color: '#f8fafc',
-      weight: 1.0,
-      opacity: 0.35,
-      dashArray: '2, 3'
+      weight: 0.75,
+      opacity: 0.25,
+      dashArray: '3, 4'
     };
   };
 
@@ -442,10 +435,10 @@ export default function WebGISMap({
         setHoveredDistrict(p);
         if (!isDistrictSelected(feature)) {
           e.target.setStyle({
-            fillOpacity: 0.18,
-            weight: 2.0,
-            color: '#ffffff',
-            opacity: 0.85
+            fillOpacity: 0,
+            weight: 1.5,
+            color: '#38bdf8',
+            opacity: 0.75
           });
         }
       },
@@ -574,6 +567,10 @@ export default function WebGISMap({
         maxBounds={[ [2.0, 60.0], [39.0, 102.0] ]}
         maxBoundsViscosity={0.7}
         scrollWheelZoom={true}
+        zoomAnimation={true}
+        zoomAnimationThreshold={8}
+        fadeAnimation={true}
+        markerZoomAnimation={true}
         className="w-full h-full z-10"
         style={{ backgroundColor: '#000000' }}
         zoomControl={false}
@@ -741,9 +738,47 @@ export default function WebGISMap({
 
           // Highlights matching screenshot: concentric white rings with luminous teal/cyan center
           const isHighlighted = isTargeted || isInSelectedDistrict;
+          const parcelCoords = claim.plot_polygon || claim.plotPolygon;
 
           return (
             <React.Fragment key={claim.id || claim.claim_id}>
+              {/* Cadastral Plot Parcel Boundary where this claim dot lies */}
+              {parcelCoords && (
+                <Polygon
+                  positions={parcelCoords}
+                  eventHandlers={{
+                    click: () => onSelectClaim(claim)
+                  }}
+                  pathOptions={{
+                    color: isTargeted ? '#ffffff' : isHighlighted ? '#38bdf8' : styling.border || styling.fill,
+                    fillColor: styling.fill,
+                    fillOpacity: isTargeted ? 0.40 : isHighlighted ? 0.30 : 0.20,
+                    weight: isTargeted ? 2.6 : isHighlighted ? 2.0 : 1.5,
+                    dashArray: isTargeted ? undefined : '4, 3'
+                  }}
+                >
+                  <Tooltip sticky={true} opacity={0.96} offset={[10, 0]}>
+                    <div style={{
+                      background: 'rgba(15, 23, 42, 0.95)',
+                      border: `1.5px solid ${styling.fill}`,
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      color: '#ffffff',
+                      fontFamily: 'ui-sans-serif, system-ui',
+                      fontSize: '11px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.8)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: styling.fill, display: 'inline-block' }}></span>
+                        <strong style={{ fontSize: '11.5px', color: '#ffffff' }}>Parcel Plot #{claim.id || claim.claim_id}</strong>
+                      </div>
+                      <div style={{ color: '#94a3b8', fontSize: '10.5px' }}>Claimant: <strong style={{ color: '#f1f5f9' }}>{claim.claimantName || claim.claimant_name || 'FRA Tribal Beneficiary'}</strong></div>
+                      <div style={{ color: '#94a3b8', fontSize: '10.5px' }}>Surveyed Area: <strong style={{ color: '#38bdf8' }}>{claim.areaHa || claim.area_ha || 2.0} Ha</strong></div>
+                      <div style={{ color: '#94a3b8', fontSize: '10.5px' }}>Status: <span style={{ color: styling.fill, textTransform: 'capitalize', fontWeight: 600 }}>{claim.status || 'monitored'}</span></div>
+                    </div>
+                  </Tooltip>
+                </Polygon>
+              )}
               {/* Outer Luminous Ring for claims in inspected district or targeted claim */}
               {isHighlighted && (
                 <CircleMarker
