@@ -72,13 +72,10 @@ export default function IndiaVectorMap({
     return statesList;
   }, [selectedState, statesList]);
 
-  // Relevant claims to display
+  // Relevant claims to display: only show when a state is selected
   const visibleClaims = useMemo(() => {
-    if (!showClaimDots) return [];
-    if (selectedState) {
-      return claims.filter(c => c.stateId === selectedState.id);
-    }
-    return claims;
+    if (!showClaimDots || !selectedState) return [];
+    return claims.filter(c => c.stateId === selectedState.id);
   }, [claims, selectedState, showClaimDots]);
 
   return (
