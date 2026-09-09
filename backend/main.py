@@ -426,6 +426,8 @@ def analyze_district(district_id: str):
 
 if __name__ == "__main__":
     import uvicorn
+    # Read dynamic PORT provided by hosting environments like Render ($PORT) or HF Spaces
+    port = int(os.getenv("PORT", 8000))
     # If running from inside backend/ directory, use "main:app", else "backend.main:app"
     app_module = "main:app" if os.path.exists("main.py") and not os.path.exists("backend") else "backend.main:app"
-    uvicorn.run(app_module, host="0.0.0.0", port=7860, reload=True)
+    uvicorn.run(app_module, host="0.0.0.0", port=port, reload=True)
