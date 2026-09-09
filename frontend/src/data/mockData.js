@@ -1,7 +1,7 @@
 import indiaSvgData from './indiaSvgData.json';
 import realIndiaStatesGeoJson from './indiaStatesGeoJson.json';
 import indiaMaskGeoJson from './indiaMaskGeoJson.json';
-import curatedClaimsGeoJson from '../../backend/data/claims.json';
+import curatedClaimsGeoJson from './claims.json';
 
 // National FRA Summary
 export const NATIONAL_SUMMARY = {

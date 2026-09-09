@@ -1,0 +1,189 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "district_id": "dist_a",
+        "name": "District A (Dindori - Bottleneck Zone)",
+        "state": "Madhya Pradesh",
+        "tribal_population_pct": 64.7,
+        "anomaly_flag": "HIGH_PENDING_DELAY",
+        "pending_rate_pct": 78.0,
+        "avg_wait_days": 620,
+        "rejection_rate_pct": 11.0,
+        "vegetation_loss_pct": 3.5,
+        "description": "Critical administrative bottleneck at SDLC verification stage. Claims stalled over 20 months."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              80.6,
+              22.6
+            ],
+            [
+              81.4,
+              22.6
+            ],
+            [
+              81.55,
+              23.2
+            ],
+            [
+              80.85,
+              23.35
+            ],
+            [
+              80.5,
+              23.0
+            ],
+            [
+              80.6,
+              22.6
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "district_id": "dist_b",
+        "name": "District B (Mandla - Rejection Spike)",
+        "state": "Madhya Pradesh",
+        "tribal_population_pct": 57.9,
+        "anomaly_flag": "ABNORMAL_REJECTION_SPIKE",
+        "pending_rate_pct": 10.0,
+        "avg_wait_days": 14,
+        "rejection_rate_pct": 82.0,
+        "vegetation_loss_pct": 4.2,
+        "description": "Abnormal mass rejection surge within 14 days of Gram Sabha submission without recorded hearing notes."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              79.95,
+              22.35
+            ],
+            [
+              80.7,
+              22.3
+            ],
+            [
+              80.85,
+              22.85
+            ],
+            [
+              80.15,
+              23.05
+            ],
+            [
+              79.8,
+              22.7
+            ],
+            [
+              79.95,
+              22.35
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "district_id": "dist_c",
+        "name": "District C (Korba - Conflict & Encroachment)",
+        "state": "Chhattisgarh",
+        "tribal_population_pct": 51.3,
+        "anomaly_flag": "FOREST_COVER_LOSS_ON_CLAIM",
+        "pending_rate_pct": 35.0,
+        "avg_wait_days": 140,
+        "rejection_rate_pct": 15.0,
+        "vegetation_loss_pct": 42.5,
+        "description": "Satellite NDVI detection reveals 42.5% acute canopy loss on pending Community Forest Resource claims."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              82.15,
+              22.1
+            ],
+            [
+              82.9,
+              22.15
+            ],
+            [
+              83.05,
+              22.75
+            ],
+            [
+              82.35,
+              22.85
+            ],
+            [
+              82.0,
+              22.45
+            ],
+            [
+              82.15,
+              22.1
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "district_id": "dist_d",
+        "name": "District D (Balaghat - Normal Benchmark)",
+        "state": "Madhya Pradesh",
+        "tribal_population_pct": 53.2,
+        "anomaly_flag": "NORMAL",
+        "pending_rate_pct": 15.0,
+        "avg_wait_days": 65,
+        "rejection_rate_pct": 12.0,
+        "vegetation_loss_pct": 2.8,
+        "description": "Control benchmark district demonstrating smooth title titling throughput and low pendency."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              79.7,
+              21.5
+            ],
+            [
+              80.6,
+              21.45
+            ],
+            [
+              80.75,
+              22.15
+            ],
+            [
+              80.05,
+              22.25
+            ],
+            [
+              79.6,
+              21.85
+            ],
+            [
+              79.7,
+              21.5
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

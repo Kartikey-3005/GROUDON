@@ -48,7 +48,10 @@ CLAIMS_JSON_PATH = os.path.join(DATA_DIR, "claims.json")
 # Ensure files exist; if not, trigger seed generation
 if not os.path.exists(DISTRICTS_JSON_PATH) or not os.path.exists(CLAIMS_JSON_PATH):
     try:
-        from backend.scripts.seed_anomalies import seed_anomaly_data
+        try:
+            from backend.scripts.seed_anomalies import seed_anomaly_data
+        except ImportError:
+            from scripts.seed_anomalies import seed_anomaly_data
         seed_anomaly_data()
     except Exception as e:
         print(f"[WARN] Could not run seed_anomalies script automatically: {e}")
@@ -131,17 +134,10 @@ app = FastAPI(
     version="2.0.0"
 )
 
-# Enable CORS for Frontend
+# Enable CORS for Frontend (Local dev, Vercel preview & production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8080",
-        "*"
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -430,4 +426,6 @@ def analyze_district(district_id: str):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("backend.main:app", host="0.0.0.0", port=8000, reload=True)
+    # If running from inside backend/ directory, use "main:app", else "backend.main:app"
+    app_module = "main:app" if os.path.exists("main.py") and not os.path.exists("backend") else "backend.main:app"
+    uvicorn.run(app_module, host="0.0.0.0", port=7860, reload=True)
