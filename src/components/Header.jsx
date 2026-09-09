@@ -23,8 +23,12 @@ export default function Header({
     <header className="h-16 bg-slate-900 border-b border-slate-800 px-4 md:px-6 flex items-center justify-between z-30 shrink-0 select-none shadow-md">
       {/* Left: Branding */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 p-0.5 shadow-lg shadow-emerald-950/40 flex items-center justify-center border border-emerald-500/30">
-          <TreePine className="w-6 h-6 text-emerald-100" />
+        <div className="w-10 h-10 rounded-xl overflow-hidden shadow-lg p-0.5 border border-white/20 shrink-0">
+          <img 
+            src="/groudon.jpg" 
+            alt="Groudon Logo" 
+            className="w-full h-full object-cover rounded-lg"
+          />
         </div>
         <div>
           <div className="flex items-center gap-2">
