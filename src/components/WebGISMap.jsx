@@ -1000,7 +1000,7 @@ export default function WebGISMap({
           ) : (
             <>
               <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              <span className="text-white font-medium">Pan-India FRA Monitoring</span>
+              <span className="text-white font-medium">Groudon</span>
               <span style={{ color: t.textMuted }}>•</span>
               <span className="text-stone-300">National WebGIS Overview</span>
               <span style={{ color: t.textMuted }}>•</span>
