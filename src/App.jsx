@@ -129,7 +129,7 @@ export default function App() {
               className="w-2.5 h-2.5 rounded-full inline-block animate-pulse"
               style={{ backgroundColor: currentTheme.accent }} 
             />
-            India FRA Monitoring
+            Groudon
           </span>
           <span style={{ color: currentTheme.textMuted }}>—</span>
           <span 
