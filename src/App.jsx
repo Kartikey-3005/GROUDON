@@ -124,13 +124,17 @@ export default function App() {
       >
         {/* Left Title matching reference: "India FRA Monitoring — Select a state on the map to inspect claims" */}
         <div className="flex items-center gap-2 text-xs md:text-sm">
-          <span className="font-bold tracking-tight text-white flex items-center gap-2">
-            <span 
-              className="w-2.5 h-2.5 rounded-full inline-block animate-pulse"
-              style={{ backgroundColor: currentTheme.accent }} 
+          <div className="flex items-center gap-2.5">
+            <img 
+              src="/groudon.jpg" 
+              alt="Groudon Logo" 
+              className="w-7 h-7 rounded-lg object-cover border shadow-sm ring-1 ring-white/10"
+              style={{ borderColor: currentTheme.surfaceBorder }}
             />
-            Groudon
-          </span>
+            <span className="font-bold tracking-tight text-white flex items-center gap-2 text-sm md:text-base">
+              Groudon
+            </span>
+          </div>
           <span style={{ color: currentTheme.textMuted }}>—</span>
           <span 
             className="text-xs hidden sm:inline"
