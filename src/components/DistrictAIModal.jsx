@@ -186,10 +186,14 @@ export default function DistrictAIModal({ isOpen, onClose, theme }) {
         >
           <div className="flex items-center gap-2.5">
             <div 
-              className="p-2 rounded-xl text-white shadow-lg"
-              style={{ backgroundColor: currentTheme.accent }}
+              className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shrink-0 border"
+              style={{ borderColor: currentTheme.borderLight }}
             >
-              <Bot className="w-5 h-5" />
+              <img 
+                src="/groudon.jpg" 
+                alt="Groudon AI" 
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
