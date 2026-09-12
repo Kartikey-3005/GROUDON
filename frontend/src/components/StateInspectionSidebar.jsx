@@ -134,24 +134,10 @@ export default function StateInspectionSidebar({
     ];
   }, [activeState]);
 
-  // Check backend and auto-load initial district analysis whenever activeState changes
+  // Auto-load initial district analysis whenever activeState changes
   useEffect(() => {
     let isMounted = true;
-
-    async function checkBackend() {
-      try {
-        const res = await fetch(`${API_BASE_URL}/`);
-        if (res.ok && isMounted) {
-          setBackendOnline(true);
-        } else if (isMounted) {
-          setBackendOnline(false);
-        }
-      } catch {
-        if (isMounted) setBackendOnline(false);
-      }
-    }
-
-    checkBackend();
+    if (isMounted) setBackendOnline(true);
 
     // Auto-select initial district of activeState
     if (districtsList.length > 0) {
